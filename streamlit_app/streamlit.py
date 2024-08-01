@@ -10,7 +10,7 @@ import sys
 from pyngrok import ngrok
 
 # Set the ngrok authtoken
-ngrok.set_auth_token('2k3CLpI8NVhXOWiBd197KK6I2dl_6hDr4QtYpAagVuW7qBFSLn')
+ngrok.set_auth_token('2k3FZmXbQ7ngOHcKZAG9PGt56yf_vL1MttSuvQSpDtHorcJG')
 
 # Open a tunnel to the Streamlit port 8501
 public_url = ngrok.connect(addr='8501', proto='http', bind_tls=True)
