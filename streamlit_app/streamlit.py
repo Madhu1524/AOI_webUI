@@ -7,6 +7,14 @@ from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
+from pyngrok import ngrok
+
+# Set the ngrok authtoken
+ngrok.set_auth_token('your_new_authtoken_here')
+
+# Open a tunnel to the Streamlit port 8501
+public_url = ngrok.connect(addr='8501', proto='http', bind_tls=True)
+print('Now you can Detect & Predict your board objects:', public_url)
 
 st.title("ElektroXen App")
 
@@ -214,4 +222,3 @@ while cap.isOpened():
 
 # Release the VideoCapture and close all OpenCV windows
 cap.release()
-# cv2.destroyAllWindows()
