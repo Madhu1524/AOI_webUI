@@ -1,3 +1,4 @@
+
 import cv2
 from ultralytics import YOLO
 import streamlit as st
@@ -11,6 +12,9 @@ from pyngrok import ngrok
 
 # Set the ngrok authtoken
 ngrok.set_auth_token('2k3FZmXbQ7ngOHcKZAG9PGt56yf_vL1MttSuvQSpDtHorcJG')
+
+# Stop existing tunnels
+ngrok.kill()
 
 # Check if a tunnel is already open
 existing_tunnels = ngrok.get_tunnels()
