@@ -11,7 +11,7 @@ import sys
 from pyngrok import ngrok
 
 # Set the ngrok authtoken
-ngrok.set_auth_token('2k3FZmXbQ7ngOHcKZAG9PGt56yf_vL1MttSuvQSpDtHorcJG')
+ngrok.set_auth_token('2k3IX8Nfk2uJDKYI5s16PnboF0r_7maX6a21EtWJE3WiiDDyw')
 
 # Stop existing tunnels
 ngrok.kill()
