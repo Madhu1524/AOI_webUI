@@ -12,10 +12,13 @@ from pyngrok import ngrok
 # Set the ngrok authtoken
 ngrok.set_auth_token('2k3FZmXbQ7ngOHcKZAG9PGt56yf_vL1MttSuvQSpDtHorcJG')
 
-# Open a tunnel to the Streamlit port 8501
-public_url = ngrok.connect(addr='8501', proto='http', bind_tls=True)
-print('Now you can Detect & Predict your board objects:', public_url)
-
+# Check if a tunnel is already open
+existing_tunnels = ngrok.get_tunnels()
+if not existing_tunnels:
+    public_url = ngrok.connect(addr='8501', proto='http', bind_tls=True)
+    print('Streamlit app is accessible at:', public_url)
+else:
+    print('Existing ngrok tunnels found:', existing_tunnels)
 st.title("ElektroXen App")
 
 # Get the path to the model file
