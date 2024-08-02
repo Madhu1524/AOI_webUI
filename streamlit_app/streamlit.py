@@ -157,11 +157,14 @@ app.whenReady().then(async () => {
         const localUrl = `http://localhost:${port}/`;
         console.log(`Streamlit is available at ${localUrl}`);
 
+        // Replace 'YOUR_NEW_AUTH_TOKEN' with your actual new ngrok authtoken
+        const NGROK_AUTH_TOKEN = '2k5rCV3NzwhBcVvwN6uihz4p2Wd_6EDrrnwMk5wL4V7h1rqZT';
+
         // Start ngrok and get the public URL
         ngrokUrl = await ngrok.connect({
             proto: 'http',
-            addr: port, // The port where Streamlit is running
-            authtoken: '2k5ku3aCibDZjyw3Wqa9N0Uc9Io_5Eh5hCsnGGoKvz4KqGuJx', // Optional, if you have an ngrok authtoken
+            addr: 8501, // The port where Streamlit is running
+            authtoken: '2k5rCV3NzwhBcVvwN6uihz4p2Wd_6EDrrnwMk5wL4V7h1rqZT', // Use the new authtoken
         });
 
         console.log(`ngrok URL: ${ngrokUrl}`);
