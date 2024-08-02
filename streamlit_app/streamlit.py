@@ -45,8 +45,12 @@ const createWindow = (url) => {
     });
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        console.error("New window creation is blocked.");
-        return { action: "deny" };
+        if (url.startsWith(ngrokUrl)) {
+            return { action: 'allow' };
+        } else {
+            console.error("New window creation is blocked.");
+            return { action: 'deny' };
+        }
     });
 };
 
@@ -202,7 +206,11 @@ app.on("web-contents-created", (event, contents) => {
     });
 
     contents.setWindowOpenHandler(({ url }) => {
-        console.error("New window creation is blocked.");
-        return { action: "deny" };
+        if (url.startsWith(ngrokUrl)) {
+            return { action: 'allow' };
+        } else {
+            console.error("New window creation is blocked.");
+            return { action: 'deny' };
+        }
     });
 });
