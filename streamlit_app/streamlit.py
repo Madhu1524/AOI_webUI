@@ -14,7 +14,21 @@ const createWindow = (url) => {
             nodeIntegration: true,
             contextIsolation: true,
             webSecurity: false,
+            additionalArguments: [
+                '--disable-features=IsolateOrigins,site-per-process'
+            ]
         },
+    });
+
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                "Content-Security-Policy": [
+                    "default-src 'self' https://cdn.ngrok.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
+                ]
+            }
+        });
     });
 
     mainWindow.loadURL(url).catch((err) => {
@@ -157,14 +171,11 @@ app.whenReady().then(async () => {
         const localUrl = `http://localhost:${port}/`;
         console.log(`Streamlit is available at ${localUrl}`);
 
-        // Replace 'YOUR_NEW_AUTH_TOKEN' with your actual new ngrok authtoken
-        const NGROK_AUTH_TOKEN = '2k5tgKBOlmoFiXHaGw6Y5w2zMhG_6Pq1S8Nr1wJ5CE5x6G6BD';
-
         // Start ngrok and get the public URL
         ngrokUrl = await ngrok.connect({
             proto: 'http',
-            addr: 8501, // The port where Streamlit is running
-            authtoken: '2k5tgKBOlmoFiXHaGw6Y5w2zMhG_6Pq1S8Nr1wJ5CE5x6G6BD', // Use the new authtoken
+            addr: port, // The port where Streamlit is running
+            authtoken: '2k5tgKBOlmoFiXHaGw6Y5w2zMhG_6Pq1S8Nr1wJ5CE5x6G6BD', // Optional, if you have an ngrok authtoken
         });
 
         console.log(`ngrok URL: ${ngrokUrl}`);
