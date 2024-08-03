@@ -7,7 +7,7 @@ openpyxl==3.1.5
 matplotlib==3.5.3
 plotly==5.15.0
 pipreqs
-
+nbdt==0.0.4
 torch==2.3.1
 streamlit-lottie
 altair==4.2.0
