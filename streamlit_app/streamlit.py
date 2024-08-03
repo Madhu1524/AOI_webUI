@@ -7,17 +7,31 @@ from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
+# import streamlit.cli as stcli
+import socket
+from subprocess import Popen
 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't have to be reachable
+        s.connect(('192.168.100.153', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '192.168.100.153'
+    finally:
+        s.close()
+    return ip
 
 st.title("ElektroXen App")
 
 # Get the path to the model file
 if getattr(sys, 'frozen', False):
     # If the application is run as a bundle, use this path for the model file
-    model_path = os.path.join(sys._MEIPASS, r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt')
+    model_path = os.path.join(sys._MEIPASS, r'D:\AOI-webUI\build\streamlit_app\best_F3.pt')
 else:
     # If running in a normal environment, use the usual path
-    model_path = r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt'
+    model_path = r'D:\AOI-webUI\build\streamlit_app\best_F3.pt'
 
 # Load the YOLO model
 model = YOLO(model_path)
@@ -132,87 +146,77 @@ row_number = ws.max_row
 # Set to store unique bounding box predictions
 unique_predictions = set()
 
-while cap.isOpened():
-    # Read the frame from the webcam
-    ret, frame = cap.read()
+if st.button("Start Detection"):
+    while cap.isOpened():
+        # Read the frame from the webcam
+        ret, frame = cap.read()
 
-    if not ret:
-        st.error("Error: Couldn't read frame.")
-        break
+        if not ret:
+            st.error("Error: Couldn't read frame.")
+            break
 
-    # Perform object detection
-    try:
-        result_img, bounding_box_predictions = predict_and_detect(model, frame, classes=selected_labels, conf=0.5)
+        # Perform object detection
+        try:
+            result_img, bounding_box_predictions = predict_and_detect(model, frame, classes=selected_labels, conf=0.5)
 
-        # Save bounding box predictions to Excel file
-        for prediction in bounding_box_predictions:
-            # Convert tensor values to Python native types (float or int)
-            confidence = float(prediction["Confidence"]) * 100
-            confidence_str = f"{confidence:.2f}%"
-            x1 = int(prediction["x1"])
-            y1 = int(prediction["y1"])
-            x2 = int(prediction["x2"])
-            y2 = int(prediction["y2"])
-            Actual_Results = "UNKNOWN"
-            
-            # Determine success rate based on class
-            if prediction["Label"] in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
-                Actual_Results = "OK"
-                cell_color = "00FF00"  # Green color in HEX format
-            elif prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
-                Actual_Results = "FAIL"
-                cell_color = "FF0000"  # Red color in HEX format
-            if 50 <= confidence < 90:
-                Actual_Results = "NOT OK"
-                cell_color = "FFFF00"  # Yellow color in HEX format
- 
-            # Determine Prediction Accuracy
-            if 85 <= confidence <= 100:
-                Prediction_Accuracy = "PASS"
-                accuracy_color = "00FF00"  # Green color in HEX format
-            elif 50 <= confidence < 85:
-                Prediction_Accuracy = "FAIL"
-                accuracy_color = "FF0000"  # Red color in HEX format
-            else:
-                Prediction_Accuracy = "UNKNOWN"
-                accuracy_color = "FFFFFF"  # White color in HEX format
-
-            # Create a tuple of the prediction to check for duplicates
-            prediction_tuple = (prediction["Label"], confidence, x1, y1, x2, y2)
-            
-            # Only add unique predictions
-            if prediction_tuple not in unique_predictions:
-                unique_predictions.add(prediction_tuple)
-                # Append the bounding box predictions to the Excel sheet
-                ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
+            # Save bounding box predictions to Excel file
+            for prediction in bounding_box_predictions:
+                # Convert tensor values to Python native types (float or int)
+                confidence = float(prediction["Confidence"]) * 100
+                confidence_str = f"{confidence:.2f}%"
+                x1 = int(prediction["x1"])
+                y1 = int(prediction["y1"])
+                x2 = int(prediction["x2"])
+                y2 = int(prediction["y2"])
+                Actual_Results = "UNKNOWN"
                 
-                # Apply color formatting to the "success_rate" column
-                row = ws.max_row
-                ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
+                # Determine success rate based on class
+                if prediction["Label"] in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
+                    Actual_Results = "OK"
+                    cell_color = "00FF00"  # Green color in HEX format
+                elif prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
+                    Actual_Results = "FAIL"
+                    cell_color = "FF0000"  # Red color in HEX format
+                if 50 <= confidence < 90:
+                    Actual_Results = "NOT OK"
+                    cell_color = "FFFF00"  # Yellow color in HEX format
+    
+                # Determine Prediction Accuracy
+                if 85 <= confidence <= 100:
+                    Prediction_Accuracy = "PASS"
+                    accuracy_color = "00FF00"  # Green color in HEX format
+                elif 50 <= confidence < 85:
+                    Prediction_Accuracy = "FAIL"
+                    accuracy_color = "FF0000"  # Red color in HEX format
+                else:
+                    Prediction_Accuracy = "UNKNOWN"
+                    accuracy_color = "FFFFFF"  # White color in HEX format
 
-                # Apply color formatting to the "Prediction Accuracy" column
-                ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
+                # Create a tuple of the prediction to check for duplicates
+                prediction_tuple = (prediction["Label"], confidence, x1, y1, x2, y2)
+                
+                # Only add unique predictions
+                if prediction_tuple not in unique_predictions:
+                    unique_predictions.add(prediction_tuple)
+                    # Append the bounding box predictions to the Excel sheet
+                    ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
+                    
+                    # Apply color formatting to the "success_rate" column
+                    row = ws.max_row
+                    ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
+                    ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
+                    
+                    row_number += 1  # Increment the row number
 
-                # Apply red color formatting to the "Label" column if the label is in the specified list
-                if prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
-                    ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+            # Display the resulting image in Streamlit
+            detected_image_placeholder.image(result_img, channels="BGR", use_column_width=True)
 
-                row_number += 1  # Increment row number
+            # Update the bounding box predictions in the sidebar
+            bounding_box_placeholder.write(bounding_box_predictions)
+            
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
 
-        # Save the changes to the Excel file
-        wb.save(filename)
-
-        # Display the detected image
-        detected_image_placeholder.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
-
-        # Update the bounding box predictions in the sidebar                    
-        bounding_box_placeholder.text("Bounding Box Predictions:")
-        for prediction in bounding_box_predictions:
-            bounding_box_placeholder.text(f"Class: {prediction['Label']}, Bounding Box: ({prediction['x1']}, {prediction['y1']}) - ({prediction['x2']}, {prediction['y2']})")
-
-    except Exception as e:
-        st.error(f"Error during object detection: {e}")
-
-# Release the VideoCapture and close all OpenCV windows
-cap.release()
-# cv2.destroyAllWindows()
+    # Release the webcam and close any OpenCV windows
+    cap.release()
+    cv2.destroyAllWindows()
