@@ -2,12 +2,15 @@ streamlit==1.19.0
 Pillow==9.5.0
 numpy==1.24.3
 pandas==2.2.2
-
+opencv-python-headless==4.10.0.84
+openpyxl==3.1.5
 matplotlib==3.5.3
 plotly==5.15.0
 pipreqs
-nbdt==0.0.4
+
 torch==2.3.1
 streamlit-lottie
 altair==4.2.0
 ultralytics==8.2.70
+streamlit==1.37.0
+tensorboard-data-server==0.7.2
