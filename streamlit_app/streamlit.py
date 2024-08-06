@@ -20,6 +20,7 @@ def get_model_path():
         return 'best_F3.pt'
 
 model_path = get_model_path()
+st.write(f"Model path: {model_path}")  # Debug statement to check the model path
 
 # Check if the model file exists
 if not os.path.exists(model_path):
