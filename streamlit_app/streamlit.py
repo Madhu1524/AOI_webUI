@@ -11,12 +11,15 @@ import base64
 st.title("ElektroXen App")
 
 # Get the path to the model file
-if getattr(sys, 'frozen', False):
-    # If the application is run as a bundle, use this path for the model file
-    model_path = os.path.join(sys._MEIPASS, 'best_F3.pt')
-else:
-    # If running in a normal environment, use the usual path
-    model_path = 'best_F3.pt'
+def get_model_path():
+    if getattr(sys, 'frozen', False):
+        # If the application is run as a bundle, use this path for the model file
+        return os.path.join(sys._MEIPASS, 'best_F3.pt')
+    else:
+        # If running in a normal environment, use the usual path
+        return 'best_F3.pt'
+
+model_path = get_model_path()
 
 # Check if the model file exists
 if not os.path.exists(model_path):
@@ -25,13 +28,12 @@ else:
     # Load the YOLO model
     try:
         model = YOLO(model_path)
+        st.success("Model loaded successfully.")
     except Exception as e:
         st.error(f"Error loading YOLO model: {e}")
 
 classNames = ["Capacitor", "Diode", "Dot-Cut Mark", "Excess-Solder", "IC", "MCU", "Missing Com.", "Non-Good com.",
               "Resistor", "Short", "Soldering-Missing", "Tilt-Com"]
-
-# ... (rest of your code) ...
 
 # Check if the webcam is opened correctly
 cap = cv2.VideoCapture(0)
