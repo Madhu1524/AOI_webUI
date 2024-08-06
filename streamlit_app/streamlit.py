@@ -14,7 +14,7 @@ st.title("ElektroXen App")
 def get_model_path():
     if getattr(sys, 'frozen', False):
         # If the application is run as a bundle, use this path for the model file
-        return os.path.join(sys._MEIPASS, 'best_F3.pt')
+        return os.path.join(sys._MEIPASS, 'streamlit_app/best_F3.pt')
     else:
         # If running in a normal environment, use the usual path
         return 'best_F3.pt'
