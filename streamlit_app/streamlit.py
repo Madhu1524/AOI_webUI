@@ -8,33 +8,76 @@ import base64
 import os
 import sys
 
+
 st.title("ElektroXen App")
 
 # Get the path to the model file
 if getattr(sys, 'frozen', False):
     # If the application is run as a bundle, use this path for the model file
-    model_path = os.path.join(sys._MEIPASS, 'best_F3.pt')
+    model_path = os.path.join(sys._MEIPASS, r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt')
 else:
     # If running in a normal environment, use the usual path
-    model_path = 'best_F3.pt'
+    model_path = r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt'
 
-# Check if the model file exists
-if not os.path.exists(model_path):
-    st.error(f"Model file not found at {model_path}")
-else:
-    # Load the YOLO model
-    try:
-        model = YOLO(model_path)
-    except Exception as e:
-        st.error(f"Error loading YOLO model: {e}")
+# Load the YOLO model
+model = YOLO(model_path)
 
 classNames = ["Capacitor", "Diode", "Dot-Cut Mark", "Excess-Solder", "IC", "MCU", "Missing Com.", "Non-Good com.",
               "Resistor", "Short", "Soldering-Missing", "Tilt-Com"]
 
-# ... (rest of your code) ...
+def predict(chosen_model, img, classes=[], conf=0.5):
+    results = chosen_model.predict(img, conf=conf)
+    
+    if classes:
+        filtered_results = []
+        for result in results:
+            filtered_boxes = [box for box in result.boxes if result.names[int(box.cls[0])] in classes]
+            result.boxes = filtered_boxes
+            filtered_results.append(result)
+        return filtered_results
+    else:
+        return results
+
+def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
+    img_copy = img.copy()  # Create a copy of the original image
+    results = predict(chosen_model, img_copy, classes, conf)
+    bounding_box_predictions = []  # Empty list to store bounding box predictions
+
+    for result in results:
+        for idx, box in enumerate(result.boxes):
+            class_name = result.names[int(box.cls[0])]
+            confidence = float(box.conf)
+            x1, y1, x2, y2 = box.xyxy[0].numpy()  # Convert tensor to numpy
+            bounding_box_predictions.append({"Label": class_name, "Confidence": confidence, "x1": x1, "y1": y1, "x2": x2, "y2": y2})
+
+            if class_name in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
+                class_color = (0, 255, 0)  # Green color for certain classes
+                Actual_Results = "OK"
+            elif class_name in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
+                class_color = (0, 0, 255)  # Red color for certain classes
+                Actual_Results = "FAIL"
+            else:
+                class_color = (255, 255, 255)  # Default color for other classes 
+                Actual_Results = "UNKNOWN"
+            
+            # Convert the datatype of the image to uint8
+            img_copy = img_copy.astype('uint8')
+            
+            cv2.rectangle(img_copy, (int(x1), int(y1)),
+                          (int(x2), int(y2)), class_color, 2)
+            cv2.putText(img_copy, f"{class_name}",
+                        (int(x1), int(y1) - 10),
+                        cv2.FONT_HERSHEY_PLAIN, 2, class_color, 2, cv2.LINE_AA)
+
+    return img_copy, bounding_box_predictions
+
+# Streamlit interface
+st.title("AOI Live Object Detection")
+
+# Create a VideoCapture object for device 0
+cap = cv2.VideoCapture(0)
 
 # Check if the webcam is opened correctly
-cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     st.error("Error: Couldn't open webcam.")
 else:
