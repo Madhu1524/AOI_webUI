@@ -17,13 +17,9 @@ def get_model_path():
         return os.path.join(sys._MEIPASS, 'streamlit_app/best_F3.pt')
     else:
         # If running in a normal environment, use the usual path
-        return os.path.join(os.getcwd(), 'best_F3.pt')
+        return 'best_F3.pt'
 
 model_path = get_model_path()
-
-# Debugging: Print current working directory and list of files
-st.write(f"Current working directory: {os.getcwd()}")
-st.write(f"Files in current directory: {os.listdir(os.getcwd())}")
 st.write(f"Model path: {model_path}")  # Debug statement to check the model path
 
 # Check if the model file exists
