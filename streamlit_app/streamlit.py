@@ -1,3 +1,5 @@
+import os
+import sys
 import cv2
 from ultralytics import YOLO
 import streamlit as st
@@ -5,8 +7,6 @@ import altair as alt
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 import base64
-import os
-import sys
 
 st.title("ElektroXen App")
 
