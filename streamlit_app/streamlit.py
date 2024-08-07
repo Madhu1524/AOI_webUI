@@ -1,14 +1,9 @@
-import cv2
+import streamlit as st
 
-cap = cv2.VideoCapture(0)  # Try different indices if 0 doesn't work
+st.title("Webcam Streamlit App")
 
-if not cap.isOpened():
-    print("Error: Couldn't open webcam.")
-else:
-    print("Webcam opened successfully.")
-    ret, frame = cap.read()
-    if ret:
-        cv2.imshow("Test Frame", frame)
-        cv2.waitKey(0)
-    cap.release()
-    cv2.destroyAllWindows()
+# Use Streamlit's built-in camera input widget
+image = st.camera_input("Take a picture")
+
+if image:
+    st.image(image, caption="Captured Image", use_column_width=True)
