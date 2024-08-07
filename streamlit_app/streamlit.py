@@ -202,4 +202,3 @@ if uploaded_image is not None:
 
     except Exception as e:
         st.error(f"Error during object detection: {e}")
-
