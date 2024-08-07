@@ -74,6 +74,8 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
 # Streamlit interface
 st.title("AOI Live Object Detection")
 st.title("Webcam Live Feed")
+run = st.checkbox('Run')
+FRAME_WINDOW = st.image([])
 # Create a VideoCapture object for device 0
 cap = cv2.VideoCapture(0)
 
