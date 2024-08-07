@@ -14,10 +14,10 @@ st.title("ElektroXen App")
 # Get the path to the model file
 if getattr(sys, 'frozen', False):
     # If the application is run as a bundle, use this path for the model file
-    model_path = os.path.join(sys._MEIPASS, r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt')
+    model_path = os.path.join(sys._MEIPASS, r'streamlit_app/best_F3.pt')
 else:
     # If running in a normal environment, use the usual path
-    model_path = r'D:\Live_AOI_Inspection\build\streamlit_app\best_F3.pt'
+    model_path = r'streamlit_app/best_F3.pt'
 
 # Load the YOLO model
 model = YOLO(model_path)
