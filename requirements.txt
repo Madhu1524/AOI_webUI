@@ -11,4 +11,4 @@ torch==2.3.1
 streamlit-lottie
 altair==4.2.0
 ultralytics==8.2.70
-streamlit-webrtc
+streamlit webrtc == 0.34.1
