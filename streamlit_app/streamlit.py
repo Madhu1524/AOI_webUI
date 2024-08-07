@@ -1,12 +1,13 @@
 import cv2
 from ultralytics import YOLO
 import streamlit as st
+import altair as alt
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import base64
 import os
 import sys
+
 
 st.title("ElektroXen App")
 
@@ -70,31 +71,80 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
 
     return img_copy, bounding_box_predictions
 
-class VideoTransformer(VideoTransformerBase):
-    def __init__(self):
-        self.model = model
-        self.classNames = classNames
-        self.selected_labels = st.sidebar.multiselect("Select Labels", self.classNames, default=self.classNames)
-        self.filename = "results.xlsx"
-        self.init_workbook()
+# Streamlit interface
+st.title("AOI Live Object Detection")
 
-    def init_workbook(self):
-        try:
-            self.wb = load_workbook(self.filename) if os.path.exists(self.filename) else Workbook()
-            self.ws = self.wb.active
-            # Add the custom column headers if the worksheet is empty
-            if self.ws.max_row == 1:
-                self.ws.append(["Label", "S.No", "Confidence", "x1", "y1", "x2", "y2", "Actual Results", "Prediction Accuracy"])
-                # Apply bold font to headers
-                for cell in self.ws[1]:
-                    cell.font = Font(bold=True)
-        except Exception as e:
-            st.error(f"Error accessing workbook: {e}")
+# Create a VideoCapture object for device 0
+cap = cv2.VideoCapture(0)
 
-    def save_predictions_to_excel(self, bounding_box_predictions):
-        row_number = self.ws.max_row
-        unique_predictions = set()
+# Check if the webcam is opened correctly
+if not cap.isOpened():
+    st.error("Error: Couldn't open webcam.")
+else:
+    st.success("Webcam is opened successfully.")
 
+# Create a Streamlit placeholder to display the detected image
+detected_image_placeholder = st.empty()
+
+# Create a multiselect widget for selecting labels
+selected_labels = st.sidebar.multiselect("Select Labels", classNames, default=classNames)
+
+# Create a placeholder to display bounding box predictions in the sidebar
+bounding_box_placeholder = st.sidebar.empty()
+
+# Upload XLSX file
+uploaded_file = st.file_uploader("Upload XLSX file", type=["xlsx"])
+
+# Initialize the workbook and worksheet for storing results
+filename = "results.xlsx"
+try:
+    if uploaded_file is not None:
+        wb = load_workbook(uploaded_file)
+        ws = wb.active
+    else:
+        wb = load_workbook(filename) if os.path.exists(filename) else Workbook()
+        ws = wb.active
+        # Add the custom column headers if the worksheet is empty
+        if ws.max_row == 1:
+            ws.append(["Label", "S.No", "Confidence", "x1", "y1", "x2", "y2", "Actual Results", "Prediction Accuracy"])
+            
+            # Apply bold font to headers
+            for cell in ws[1]:
+                cell.font = Font(bold=True)
+except Exception as e:
+    st.error(f"Error accessing workbook: {e}")
+
+# Create download button for Excel file
+if st.button("Download Report results.xlsx"):
+    try:
+        wb.save(filename)
+        with open(filename, "rb") as file:
+            btn = file.read()
+            b64 = base64.b64encode(btn).decode()
+            href = f'<a href="data:file/xlsx;base64,{b64}" download="{filename}">Download {filename}</a>'
+            st.markdown(href, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error saving workbook: {e}")
+
+# Initialize S.No
+row_number = ws.max_row
+
+# Set to store unique bounding box predictions
+unique_predictions = set()
+
+while cap.isOpened():
+    # Read the frame from the webcam
+    ret, frame = cap.read()
+
+    if not ret:
+        st.error("Error: Couldn't read frame.")
+        break
+
+    # Perform object detection
+    try:
+        result_img, bounding_box_predictions = predict_and_detect(model, frame, classes=selected_labels, conf=0.5)
+
+        # Save bounding box predictions to Excel file
         for prediction in bounding_box_predictions:
             # Convert tensor values to Python native types (float or int)
             confidence = float(prediction["Confidence"]) * 100
@@ -134,38 +184,38 @@ class VideoTransformer(VideoTransformerBase):
             if prediction_tuple not in unique_predictions:
                 unique_predictions.add(prediction_tuple)
                 # Append the bounding box predictions to the Excel sheet
-                self.ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
+                ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
                 
                 # Apply color formatting to the "success_rate" column
-                row = self.ws.max_row
-                self.ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
+                row = ws.max_row
+                ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
 
                 # Apply color formatting to the "Prediction Accuracy" column
-                self.ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
+                ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
 
                 # Apply red color formatting to the "Label" column if the label is in the specified list
                 if prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
-                    self.ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+                    ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
 
                 row_number += 1  # Increment row number
 
-        self.wb.save(self.filename)
+        # Save the changes to the Excel file
+        wb.save(filename)
 
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        result_img, bounding_box_predictions = predict_and_detect(self.model, img, classes=self.selected_labels, conf=0.5)
-        self.save_predictions_to_excel(bounding_box_predictions)
-        return result_img
+        # Display the detected image
+        detected_image_placeholder.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
 
-webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
+        # Update the bounding box predictions in the sidebar                    
+        bounding_box_placeholder.text("Bounding Box Predictions:")
+        for prediction in bounding_box_predictions:
+            bounding_box_placeholder.text(f"Class: {prediction['Label']}, Bounding Box: ({prediction['x1']}, {prediction['y1']}) - ({prediction['x2']}, {prediction['y2']})")
 
-# Create download button for Excel file
-if st.button("Download Report results.xlsx"):
-    try:
-        with open("results.xlsx", "rb") as file:
-            btn = file.read()
-            b64 = base64.b64encode(btn).decode()
-            href = f'<a href="data:file/xlsx;base64,{b64}" download="results.xlsx">Download results.xlsx</a>'
-            st.markdown(href, unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Error saving workbook: {e}")
+        st.error(f"Error during object detection: {e}")
+
+# Release the VideoCapture and close all OpenCV windows
+cap.release()
+# cv2.destroyAllWindows()
+
+
+/workspaces/AOI_webUI/streamlit_app
