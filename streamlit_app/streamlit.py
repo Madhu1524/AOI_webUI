@@ -9,7 +9,7 @@ import os
 import sys
 
 try:
-    from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, VideoFrameCallback
+    from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 except ImportError as e:
     st.error(f"Failed to import streamlit_webrtc: {e}")
     st.stop()
@@ -188,4 +188,4 @@ unique_predictions = set()
 row_number = ws.max_row + 1 if ws.max_row > 1 else 1  # Adjust the row number to start from the first row if empty
 
 # Activate the YOLO video transformer
-webrtc_streamer(key="example", video_frame_callback=YOLOTransformer().transform)
+webrtc_streamer(key="example", video_transformer_factory=YOLOTransformer)
