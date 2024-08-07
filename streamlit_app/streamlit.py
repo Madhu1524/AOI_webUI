@@ -7,15 +7,6 @@ from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
-from streamlit_webrtc import (
-    VideoProcessorBase,
-    WebRtcMode,
-    WebRtcStreamerContext,
-    create_mix_track,
-    create_process_track,
-    webrtc_streamer,
-)
-
 
 st.title("ElektroXen App")
 
@@ -205,23 +196,21 @@ while cap.isOpened():
                 if prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
                     ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
 
-                row_number += 1  # Increment row number
+                # Apply green color formatting to the "Label" column if the label is in the specified list
+                elif prediction["Label"] in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
+                    ws.cell(row=row, column=1).fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
 
-        # Save the changes to the Excel file
-        wb.save(filename)
+                # Increment the row number for the next prediction
+                row_number += 1
+        
+        # Display the resulting frame with bounding boxes in Streamlit
+        detected_image_placeholder.image(result_img, channels="BGR")
 
-        # Display the detected image
-        detected_image_placeholder.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
-
-        # Update the bounding box predictions in the sidebar                    
-        bounding_box_placeholder.text("Bounding Box Predictions:")
-        for prediction in bounding_box_predictions:
-            bounding_box_placeholder.text(f"Class: {prediction['Label']}, Bounding Box: ({prediction['x1']}, {prediction['y1']}) - ({prediction['x2']}, {prediction['y2']})")
+        # Update the bounding box predictions in the sidebar
+        bounding_box_placeholder.table(bounding_box_predictions)
 
     except Exception as e:
-        st.error(f"Error during object detection: {e}")
+        st.error(f"Error during prediction and detection: {e}")
+        break
 
-# Release the VideoCapture and close all OpenCV windows
 cap.release()
-# cv2.destroyAllWindows()
-
