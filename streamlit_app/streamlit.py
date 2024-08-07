@@ -70,7 +70,7 @@ st.title("AOI Live Object Detection")
 
 run = st.checkbox('Run')
 FRAME_WINDOW = st.image([])
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 if not cap.isOpened():
     st.error("Error: Couldn't open webcam.")
