@@ -187,5 +187,15 @@ if st.button("Download Report results.xlsx"):
 unique_predictions = set()
 row_number = ws.max_row + 1 if ws.max_row > 1 else 1  # Adjust the row number to start from the first row if empty
 
-# Activate the YOLO video transformer
-webrtc_streamer(key="example", video_transformer_factory=YOLOTransformer)
+# Activate the YOLO video transformer with specified dimensions
+webrtc_streamer(
+    key="example",
+    video_transformer_factory=YOLOTransformer,
+    media_stream_constraints={
+        "video": {
+            "width": {"ideal": 800},
+            "height": {"ideal": 600},
+        },
+        "audio": False,
+    }
+)
