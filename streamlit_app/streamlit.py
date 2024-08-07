@@ -217,5 +217,3 @@ while cap.isOpened():
 cap.release()
 # cv2.destroyAllWindows()
 
-
-/workspaces/AOI_webUI/streamlit_app
