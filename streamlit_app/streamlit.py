@@ -1,11 +1,14 @@
 import cv2
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)  # Try different indices if 0 doesn't work
 
 if not cap.isOpened():
-    error_code = cap.get(cv2.CAP_PROP_SETTINGS)
-    st.error(f"Error: Couldn't open webcam. Error code: {error_code}")
-    logger.error(f"Error: Couldn't open webcam. Error code: {error_code}")
+    print("Error: Couldn't open webcam.")
 else:
-    st.success("Webcam is opened successfully.")
-    logger.info("Webcam opened successfully.")
+    print("Webcam opened successfully.")
+    ret, frame = cap.read()
+    if ret:
+        cv2.imshow("Test Frame", frame)
+        cv2.waitKey(0)
+    cap.release()
+    cv2.destroyAllWindows()
