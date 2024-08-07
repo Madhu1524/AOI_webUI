@@ -7,7 +7,12 @@ from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, VideoFrameCallback
+
+try:
+    from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, VideoFrameCallback
+except ImportError as e:
+    st.error(f"Failed to import streamlit_webrtc: {e}")
+    st.stop()
 
 st.title("ElektroXen App")
 
@@ -173,18 +178,14 @@ if st.button("Download Report results.xlsx"):
     try:
         wb.save(filename)
         with open(filename, "rb") as file:
-            btn = file.read()
-            b64 = base64.b64encode(btn).decode()
-            href = f'<a href="data:file/xlsx;base64,{b64}" download="{filename}">Download {filename}</a>'
-            st.markdown(href, unsafe_allow_html=True)
+            b64 = base64.b64encode(file.read()).decode()
+        href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="results.xlsx">Download results.xlsx</a>'
+        st.markdown(href, unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Error saving workbook: {e}")
+        st.error(f"Error generating download link: {e}")
 
-# Initialize S.No
-row_number = ws.max_row
-
-# Set to store unique bounding box predictions
 unique_predictions = set()
+row_number = ws.max_row + 1 if ws.max_row > 1 else 1  # Adjust the row number to start from the first row if empty
 
-# Use streamlit-webrtc for video streaming
-webrtc_streamer(key="example", video_transformer_factory=YOLOTransformer)
+# Activate the YOLO video transformer
+webrtc_streamer(key="example", video_frame_callback=YOLOTransformer().transform)
