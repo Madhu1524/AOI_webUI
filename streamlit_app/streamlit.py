@@ -80,11 +80,7 @@ cap = cv2.VideoCapture(0)
 # Check if the webcam is opened correctly
 if not cap.isOpened():
     st.error("Error: Couldn't open webcam.")
-    st.write("Possible reasons:")
-    st.write("1. Browser doesn't have permission to access the webcam.")
-    st.write("2. Another application is using the webcam.")
-    st.write("3. Incorrect device index.")
-    st.write("4. Webcam is not connected.")
+   
 else:
     st.success("Webcam is opened successfully.")
 
@@ -209,4 +205,4 @@ while cap.isOpened():
     bounding_box_placeholder.write(bounding_box_predictions)
 
 cap.release()
-cv2.destroyAllWindows()
+
