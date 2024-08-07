@@ -80,6 +80,11 @@ cap = cv2.VideoCapture(0)
 # Check if the webcam is opened correctly
 if not cap.isOpened():
     st.error("Error: Couldn't open webcam.")
+    st.write("Possible reasons:")
+    st.write("1. Browser doesn't have permission to access the webcam.")
+    st.write("2. Another application is using the webcam.")
+    st.write("3. Incorrect device index.")
+    st.write("4. Webcam is not connected.")
 else:
     st.success("Webcam is opened successfully.")
 
@@ -185,34 +190,23 @@ while cap.isOpened():
                 unique_predictions.add(prediction_tuple)
                 # Append the bounding box predictions to the Excel sheet
                 ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
-                
-                # Apply color formatting to the "success_rate" column
-                row = ws.max_row
-                ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
+                row_number += 1
 
-                # Apply color formatting to the "Prediction Accuracy" column
-                ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
+                # Apply the desired color to the Actual Results cell and Prediction Accuracy cell
+                actual_results_cell = ws.cell(row=row_number, column=8)
+                actual_results_cell.fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
 
-                # Apply red color formatting to the "Label" column if the label is in the specified list
-                if prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
-                    ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
-
-                row_number += 1  # Increment row number
-
-        # Save the changes to the Excel file
-        wb.save(filename)
-
-        # Display the detected image
-        detected_image_placeholder.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
-
-        # Update the bounding box predictions in the sidebar                    
-        bounding_box_placeholder.text("Bounding Box Predictions:")
-        for prediction in bounding_box_predictions:
-            bounding_box_placeholder.text(f"Class: {prediction['Label']}, Bounding Box: ({prediction['x1']}, {prediction['y1']}) - ({prediction['x2']}, {prediction['y2']})")
+                accuracy_cell = ws.cell(row=row_number, column=9)
+                accuracy_cell.fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
 
     except Exception as e:
         st.error(f"Error during object detection: {e}")
 
-# Release the VideoCapture and close all OpenCV windows
+    # Display the detected image in the Streamlit app
+    detected_image_placeholder.image(result_img, channels="BGR")
+
+    # Display bounding box predictions in the sidebar
+    bounding_box_placeholder.write(bounding_box_predictions)
+
 cap.release()
-# cv2.destroyAllWindows()
+cv2.destroyAllWindows()
