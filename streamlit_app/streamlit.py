@@ -7,7 +7,7 @@ from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
-import numpy as np
+
 
 st.title("ElektroXen App")
 
@@ -74,8 +74,16 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
 # Streamlit interface
 st.title("AOI Live Object Detection")
 
-# Create a Streamlit camera input widget
-uploaded_image = st.camera_input("Take a picture")
+picture = st.camera_input("Take a picture")
+
+# Check if the webcam is opened correctly
+if not cap.isOpened():
+    st.error("Error: Couldn't open webcam.")
+else:
+    st.success("Webcam is opened successfully.")
+
+# Create a Streamlit placeholder to display the detected image
+detected_image_placeholder = st.empty()
 
 # Create a multiselect widget for selecting labels
 selected_labels = st.sidebar.multiselect("Select Labels", classNames, default=classNames)
@@ -123,12 +131,13 @@ row_number = ws.max_row
 # Set to store unique bounding box predictions
 unique_predictions = set()
 
-# Process the uploaded image
-if uploaded_image is not None:
-    # Convert the uploaded image to an OpenCV format
-    image_bytes = uploaded_image.read()
-    image_np = np.frombuffer(image_bytes, np.uint8)
-    frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+while cap.isOpened():
+    # Read the frame from the webcam
+    ret, frame = cap.read()
+
+    if not ret:
+        st.error("Error: Couldn't read frame.")
+        break
 
     # Perform object detection
     try:
@@ -193,7 +202,7 @@ if uploaded_image is not None:
         wb.save(filename)
 
         # Display the detected image
-        st.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
+        detected_image_placeholder.image(result_img, channels="BGR", caption='Detected Objects', use_column_width=True)
 
         # Update the bounding box predictions in the sidebar                    
         bounding_box_placeholder.text("Bounding Box Predictions:")
@@ -202,3 +211,7 @@ if uploaded_image is not None:
 
     except Exception as e:
         st.error(f"Error during object detection: {e}")
+
+# Release the VideoCapture and close all OpenCV windows
+# cap.release()
+# cv2.destroyAllWindows()
