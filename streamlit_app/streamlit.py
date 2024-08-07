@@ -1,13 +1,13 @@
 import cv2
 from ultralytics import YOLO
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, VideoTransformerContext
 import altair as alt
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill
 import base64
 import os
 import sys
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, VideoFrameCallback
 
 st.title("ElektroXen App")
 
@@ -27,6 +27,7 @@ classNames = ["Capacitor", "Diode", "Dot-Cut Mark", "Excess-Solder", "IC", "MCU"
 
 def predict(chosen_model, img, classes=[], conf=0.5):
     results = chosen_model.predict(img, conf=conf)
+    
     if classes:
         filtered_results = []
         for result in results:
@@ -70,26 +71,80 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
 
     return img_copy, bounding_box_predictions
 
-# Define the VideoTransformer for streamlit-webrtc
 class YOLOTransformer(VideoTransformerBase):
     def __init__(self):
         self.model = model
-        self.selected_labels = classNames
 
-    def transform(self, frame: VideoTransformerContext) -> np.ndarray:
+    def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        result_img, bounding_box_predictions = predict_and_detect(self.model, img, classes=self.selected_labels, conf=0.5)
+        result_img, bounding_box_predictions = predict_and_detect(self.model, img, classes=selected_labels, conf=0.5)
         
+        # Save bounding box predictions to Excel file
+        for prediction in bounding_box_predictions:
+            # Convert tensor values to Python native types (float or int)
+            confidence = float(prediction["Confidence"]) * 100
+            confidence_str = f"{confidence:.2f}%"
+            x1 = int(prediction["x1"])
+            y1 = int(prediction["y1"])
+            x2 = int(prediction["x2"])
+            y2 = int(prediction["y2"])
+            Actual_Results = "UNKNOWN"
+            
+            # Determine success rate based on class
+            if prediction["Label"] in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
+                Actual_Results = "OK"
+                cell_color = "00FF00"  # Green color in HEX format
+            elif prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
+                Actual_Results = "FAIL"
+                cell_color = "FF0000"  # Red color in HEX format
+            if 50 <= confidence < 90:
+                Actual_Results = "NOT OK"
+                cell_color = "FFFF00"  # Yellow color in HEX format
+ 
+            # Determine Prediction Accuracy
+            if 85 <= confidence <= 100:
+                Prediction_Accuracy = "PASS"
+                accuracy_color = "00FF00"  # Green color in HEX format
+            elif 50 <= confidence < 85:
+                Prediction_Accuracy = "FAIL"
+                accuracy_color = "FF0000"  # Red color in HEX format
+            else:
+                Prediction_Accuracy = "UNKNOWN"
+                accuracy_color = "FFFFFF"  # White color in HEX format
+
+            # Create a tuple of the prediction to check for duplicates
+            prediction_tuple = (prediction["Label"], confidence, x1, y1, x2, y2)
+            
+            # Only add unique predictions
+            if prediction_tuple not in unique_predictions:
+                unique_predictions.add(prediction_tuple)
+                # Append the bounding box predictions to the Excel sheet
+                ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
+                
+                # Apply color formatting to the "success_rate" column
+                row = ws.max_row
+                ws.cell(row=row, column=8).fill = PatternFill(start_color=cell_color, end_color=cell_color, fill_type="solid")
+                ws.cell(row=row, column=9).fill = PatternFill(start_color=accuracy_color, end_color=accuracy_color, fill_type="solid")
+
+                # Apply red color formatting to the "Label" column if the label is in the specified list
+                if prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
+                    ws.cell(row=row, column=1).fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+
+                row_number += 1  # Increment row number
+
+        # Save the changes to the Excel file
+        wb.save(filename)
+
         return result_img
 
 # Streamlit interface
 st.title("AOI Live Object Detection")
 
-# Create a VideoTransformer using streamlit-webrtc
-webrtc_ctx = webrtc_streamer(key="example", video_transformer_factory=YOLOTransformer)
-
 # Create a multiselect widget for selecting labels
 selected_labels = st.sidebar.multiselect("Select Labels", classNames, default=classNames)
+
+# Create a placeholder to display bounding box predictions in the sidebar
+bounding_box_placeholder = st.sidebar.empty()
 
 # Upload XLSX file
 uploaded_file = st.file_uploader("Upload XLSX file", type=["xlsx"])
@@ -131,55 +186,5 @@ row_number = ws.max_row
 # Set to store unique bounding box predictions
 unique_predictions = set()
 
-# Processing and saving predictions in the main loop
-if webrtc_ctx.video_transformer:
-    webrtc_ctx.video_transformer.selected_labels = selected_labels
-    while webrtc_ctx.state.playing:
-        # Perform object detection
-        try:
-            # Save bounding box predictions to Excel file
-            bounding_box_predictions = webrtc_ctx.video_transformer.bounding_box_predictions
-            for prediction in bounding_box_predictions:
-                # Convert tensor values to Python native types (float or int)
-                confidence = float(prediction["Confidence"]) * 100
-                confidence_str = f"{confidence:.2f}%"
-                x1 = int(prediction["x1"])
-                y1 = int(prediction["y1"])
-                x2 = int(prediction["x2"])
-                y2 = int(prediction["y2"])
-                Actual_Results = "UNKNOWN"
-                
-                # Determine success rate based on class
-                if prediction["Label"] in ["Capacitor", "Diode", "IC", "MCU", "Dot-Cut Mark", "Resistor"]:
-                    Actual_Results = "OK"
-                    cell_color = "00FF00"  # Green color in HEX format
-                elif prediction["Label"] in ["Excess-Solder", "Missing Com.", "Non-Good com.", "Short", "Soldering-Missing", "Tilt-Com"]:
-                    Actual_Results = "FAIL"
-                    cell_color = "FF0000"  # Red color in HEX format
-                if 50 <= confidence < 90:
-                    Actual_Results = "NOT OK"
-                    cell_color = "FFFF00"  # Yellow color in HEX format
-
-                # Determine Prediction Accuracy
-                if 85 <= confidence <= 100:
-                    Prediction_Accuracy = "PASS"
-                    accuracy_color = "00FF00"  # Green color in HEX format
-                elif 50 <= confidence < 85:
-                    Prediction_Accuracy = "FAIL"
-                    accuracy_color = "FF0000"  # Red color in HEX format
-                else:
-                    Prediction_Accuracy = "UNKNOWN"
-                    accuracy_color = "FFFFFF"  # White color in HEX format
-
-                # Create a tuple of the prediction to check for duplicates
-                prediction_tuple = (prediction["Label"], confidence, x1, y1, x2, y2)
-                
-                # Only add unique predictions
-                if prediction_tuple not in unique_predictions:
-                    unique_predictions.add(prediction_tuple)
-                    # Append the bounding box predictions to the Excel sheet
-                    ws.append([prediction["Label"], row_number, confidence_str, x1, y1, x2, y2, Actual_Results, Prediction_Accuracy])
-                    
-                    # Apply color formatting to the "success_rate" column
-                    row = ws.max_row
-                    ws.cell(row=row, column=8).fill =
+# Use streamlit-webrtc for video streaming
+webrtc_streamer(key="example", video_transformer_factory=YOLOTransformer)
