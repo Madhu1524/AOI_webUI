@@ -184,7 +184,7 @@ if st.button("Download Report results.xlsx"):
     except Exception as e:
         st.error(f"Error generating download link: {e}")
 
-unique_predictions = set()
+unique_predictions = set()  # Track unique predictions to avoid duplicates
 row_number = ws.max_row + 1 if ws.max_row > 1 else 1  # Adjust the row number to start from the first row if empty
 
 # Activate the YOLO video transformer with specified dimensions
@@ -197,5 +197,8 @@ webrtc_streamer(
             "height": {"ideal": 600},
         },
         "audio": False,
+    },
+    video_html_attrs={
+        "style": {"width": "800px", "height": "600px"},
     }
 )
