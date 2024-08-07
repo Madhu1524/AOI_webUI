@@ -73,8 +73,9 @@ def predict_and_detect(chosen_model, img, classes=[], conf=0.5):
 
 # Streamlit interface
 st.title("AOI Live Object Detection")
-
-picture = st.camera_input("Take a picture")
+st.title("Webcam Live Feed")
+# Create a VideoCapture object for device 0
+cap = cv2.VideoCapture(0)
 
 # Check if the webcam is opened correctly
 if not cap.isOpened():
@@ -213,5 +214,5 @@ while cap.isOpened():
         st.error(f"Error during object detection: {e}")
 
 # Release the VideoCapture and close all OpenCV windows
-# cap.release()
+cap.release()
 # cv2.destroyAllWindows()
